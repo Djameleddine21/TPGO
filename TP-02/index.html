@@ -1,0 +1,294 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Points d'articulation</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.css" rel="stylesheet"
+        type="text/css" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300&display=swap" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+
+<body onload="draw();">
+    <div id="network-popUp">
+        <span id="operation">node</span>
+        <br>
+        <table style="margin:auto;">
+            <tr>
+                <td>id</td>
+                <td>
+                    <input id="node-id" value="new value" />
+                </td>
+            </tr>
+            <tr>
+                <td>label</td>
+                <td>
+                    <input id="node-label" value="new value" />
+                </td>
+            </tr>
+        </table>
+        <input type="button" value="save" id="saveButton" />
+        <input type="button" value="cancel" id="cancelButton" />
+    </div>
+    <div id="particles-js"></div>
+    <div class="container">
+        <div class="row justify-content-center pt-4">
+            <h1>TP des points d'articulation</h2>
+        </div>
+        <div class="row justify-content-center mb-3 mt-2">
+            <div class="col-md-10">
+                <div id="mynetwork"></div>
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <button class="btn btn-block btn-lg btn-outline-light" id="articulation">Voir les points
+                    d'articulations</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="config" style="display: none;"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+        integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"
+        integrity="sha384-6khuMg9gaYr5AxOqhkVIODVIvm9ynTT5J4V1cfthmT+emCG6yVmEZsRHdxlotUnm"
+        crossorigin="anonymous"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script> -->
+    <script src="script.js"></script>
+</body>
+
+</html>
+<script>
+    var idCounter = 0;
+    var network = null;
+    var nodes = new vis.DataSet([]);
+
+    var edges = new vis.DataSet([]);
+
+    // create a network
+    var data = {
+        nodes: nodes,
+        edges: edges
+    };
+
+
+    function destroy() {
+        if (network !== null) {
+            network.destroy();
+            network = null;
+        }
+    }
+
+    function draw() {
+        destroy();
+        nodes = [];
+        edges = [];
+
+        // create a network
+        var container = document.getElementById('mynetwork');
+        var options = {
+            manipulation: {
+                addNode: function (data, callback) {
+                    // filling in the popup DOM elements
+                    document.getElementById('operation').innerHTML = "Ajouter Noeud";
+                    document.getElementById('node-label').value = "Noeud " + idCounter;
+                    document.getElementById('node-id').value = idCounter++;
+                    document.getElementById('saveButton').onclick = saveData.bind(this, data, callback);
+                    document.getElementById('cancelButton').onclick = clearPopUp.bind();
+                    document.getElementById('network-popUp').style.display = 'block';
+                },
+                editNode: function (data, callback) {
+                    // filling in the popup DOM elements
+                    document.getElementById('operation').innerHTML = "Modifier Noeud";
+                    document.getElementById('node-id').value = data.id;
+                    document.getElementById('node-label').value = data.label;
+                    document.getElementById('saveButton').onclick = saveData.bind(this, data, callback);
+                    document.getElementById('cancelButton').onclick = cancelEdit.bind(this, callback);
+                    document.getElementById('network-popUp').style.display = 'block';
+                },
+                addEdge: function (data, callback) {
+                    if (data.from == data.to) {
+                        var r = confirm("Vous voulez connecté le noeud avec lui même ?");
+                        if (r == true) {
+                            callback(data);
+                        }
+                    } else {
+                        callback(data);
+                    }
+                },
+
+            },
+            configure: {
+                filter: function (option, path) {
+                    if (path.indexOf('physics') !== -1) {
+                        return true;
+                    }
+                    if (path.indexOf('smooth') !== -1 || option === 'smooth') {
+                        return true;
+                    }
+                    return false;
+                },
+                container: document.getElementById('config')
+            },
+            interaction: {
+
+            },
+            "nodes": {
+                "font": {
+                    "size": 14,
+                    "color": '#ffffff',
+                },
+                "borderWidth": 2,
+                "color": {
+                    "background": '#000000',
+                    "border": '#000000',
+                }
+
+            },
+            "edges": {
+                "smooth": {
+                    "forceDirection": "none"
+                }
+            },
+            "physics": {
+                "barnesHut": {
+                    "centralGravity": 0,
+                    "springLength": 300,
+                    "springConstant": 0.005,
+                    "damping": 1
+                },
+                "maxVelocity": 21
+            }
+
+        };
+        network = new vis.Network(container, data, options);
+    }
+
+    function clearPopUp() {
+        document.getElementById('saveButton').onclick = null;
+        document.getElementById('cancelButton').onclick = null;
+        document.getElementById('network-popUp').style.display = 'none';
+    }
+
+    function cancelEdit(callback) {
+        clearPopUp();
+        callback(null);
+    }
+
+    function saveData(data, callback) {
+        data.id = document.getElementById('node-id').value;
+        data.label = document.getElementById('node-label').value;
+        clearPopUp();
+        callback(data);
+    }
+
+    document.getElementById("articulation").addEventListener("click", tarjan);
+
+    class Graph {
+        constructor(vertices) {
+            this.time = 0;
+            this.v = vertices;
+            this.adj = new Array(this.v).fill(null).map(() => []);
+        }
+        addEdge(v, w) {
+            this.adj[v].push(w)
+            this.adj[w].push(v)
+        }
+        APUtil(u, visited, disc, low, parent, ap) {
+            var children = 0;
+            visited[u] = true;
+
+            disc[u] = this.time;
+            low[u] = this.time;
+            this.time += 1;
+            // disc[u] = low[u] = ++this.time; 
+
+            var tab = this.adj[u]
+            for (var i = 0; i < tab.length; i++) {
+                var v = tab[i];
+                if (!visited[v]) {
+                    children++;
+                    parent[v] = u;
+                    this.APUtil(v, visited, disc, low, parent, ap);
+
+
+                    low[u] = Math.min(low[u], low[v]);
+
+
+                    if ((parent[u] == -1) && (children > 1)) {
+                        ap[u] = true;
+                    }
+
+
+
+                    if ((parent[u] != -1) && (low[v] >= disc[u])) {
+                        ap[u] = true;
+                    }
+
+
+
+                }
+                else if (v != parent[u]) {
+                    low[u] = Math.min(low[u], disc[v]);
+
+                }
+            }
+        }
+        AP() {
+
+            let visited = Array(this.v).fill(null).map(() => false)
+            let disc = Array(this.v).fill(null).map(() => 0)
+            let low = Array(this.v).fill(null).map(() => 0)
+            let parent = Array(this.v).fill(null).map(() => -1)
+            let ap = Array(this.v).fill(null).map(() => false)
+
+            for (var i = 0; i < this.v; i++) {
+                if (visited[i] == false)
+                    this.APUtil(i, visited, disc, low, parent, ap);
+            }
+
+
+            for (var j = 0; j < this.v; j++) {
+                data.nodes.update({ id: j, color: { background: '#349feb' } })
+
+                if (ap[j] == true) {
+                    data.nodes.update({ id: j, color: { background: '#eb4034' } })
+                }
+
+            }
+
+
+        }
+    }
+
+    function tarjan() {
+        var edges = data.edges;
+        var nodes = data.nodes;
+
+        // let i = 0;
+        // nodes.forEach(function(node,index){
+        //     console.log(nodes.index)
+        //     edges.forEach(edge=>{
+        //         if(edge.to == index) edge.to = i;
+        //         if(edge.from == index) edge.from = i;
+        //     })
+
+        //     i++;
+        // });
+
+        console.log("Articulation points in first graph")
+        g1 = new Graph(nodes.length)
+        edges.forEach(element => {
+            g1.addEdge(element.from, element.to)
+
+        })
+        console.log(g1.adj);
+        g1.AP()
+    }
+</script>
